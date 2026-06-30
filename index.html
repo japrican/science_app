@@ -500,7 +500,23 @@ function showUnlockOverlay(purchaseUrl) {
   `;
   document.body.appendChild(overlay);
 }
-
+function showEarlyPurchaseOverlay(purchaseUrl) {
+  const overlay = document.createElement('div');
+  overlay.id = 'unlock-overlay';
+  overlay.style = `position: fixed; inset: 0; background: rgba(0,0,0,0.75);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 9999; padding: 24px;`;
+  overlay.innerHTML = `
+    <div style="background:white; border-radius:20px; padding:36px 28px; max-width:380px; text-align:center; box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+      <div style="font-size:48px; margin-bottom:12px;">🛒</div>
+      <div style="font-family:'Noto Sans JP',sans-serif; font-size:20px; font-weight:900; color:#1c1c1a; margin-bottom:8px;">今すぐ購入する</div>
+      <div style="font-size:13px; color:#6b7280; line-height:1.7; margin-bottom:24px;">無料体験はまだ続いています。<br>気に入ったら、今すぐ購入することもできます。</div>
+      <a href="${purchaseUrl}" style="display:block; background:#7c3aed; color:white; text-decoration:none; font-family:'Noto Sans JP',sans-serif; font-weight:900; font-size:15px; padding:14px; border-radius:100px; box-shadow:0 4px 16px rgba(124,58,237,0.35); margin-bottom:10px;">🛒 このアプリだけ購入する</a>
+      <a href="https://buy.stripe.com/fZu7sE1oQdzu41S1DU5wI01" style="display:block; background:#fde68a; color:#1c1c1a; text-decoration:none; font-family:'Noto Sans JP',sans-serif; font-weight:900; font-size:14px; padding:13px; border-radius:100px; margin-bottom:10px;">✨ 全教科セットで購入する</a>
+      <a href="javascript:void(0)" onclick="document.getElementById('unlock-overlay').remove()" style="display:block; color:#9ca3af; font-family:'Noto Sans JP',sans-serif; font-size:13px; padding:6px;">あとで（無料期間を続ける）</a>
+    </div>`;
+  document.body.appendChild(overlay);
+}
 function showTrialBanner() {
   const daysLeft = getTrialDaysLeft();
   if (isUnlocked()) return;
@@ -515,9 +531,17 @@ function showTrialBanner() {
     border-top: 3px solid ${accentColor};
     box-shadow: 0 -2px 8px rgba(0,0,0,0.08);
   `;
+  banner.style.cursor = 'pointer';
   banner.textContent = daysLeft > 0
-    ? `🎁 無料体験 残り${daysLeft}日`
-    : `🔒 無料体験が終了しました`;
+    ? `🎁 無料体験 残り${daysLeft}日（タップで購入）`
+    : `🔒 無料体験が終了しました（タップで購入）`;
+  banner.onclick = function() {
+    if (isContentAccessible()) {
+      showEarlyPurchaseOverlay(PURCHASE_URL);
+    } else {
+      showUnlockOverlay(PURCHASE_URL);
+    }
+  };
   document.body.appendChild(banner);
   document.body.style.paddingBottom = '50px';
 }
@@ -528,7 +552,7 @@ const PURCHASE_URL = 'https://buy.stripe.com/6oU9AM8Ri8fa7e46Ye5wI04';
 
 <!-- ===== HOME ===== -->
 <div id="screen-home" class="screen active">
-  <a href="https://japrican.github.io/portal/" class="portal-link-btn">📚 学びのミカタ 他の教科を見る</a>
+  <a href="https://japrican.github.io/portal/" class="portal-link-btn">📚 学びのミカタ 他の教科を見る</a><a href="javascript:void(0)" onclick="if(isContentAccessible()){showEarlyPurchaseOverlay(PURCHASE_URL);}else{showUnlockOverlay(PURCHASE_URL);}" id="early-buy-btn" class="portal-link-btn" style="margin-top:-8px;">🛒 今すぐ購入する</a>
   <div class="home-logo">
     <span class="home-icon">🔬</span>
     <div class="home-series">Science Story Series</div>
@@ -1440,6 +1464,10 @@ initGradeGrid();
 <script>
 document.addEventListener('DOMContentLoaded', function() {
   initTrialSystem();
+  if (isUnlocked()) {
+    const btn = document.getElementById('early-buy-btn');
+    if (btn) btn.style.display = 'none';
+  }
   showTrialBanner();
   if (!isContentAccessible()) {
     showUnlockOverlay(PURCHASE_URL);
